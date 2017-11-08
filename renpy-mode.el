@@ -207,24 +207,29 @@ The path is relative to the current buffer's file path."
   "Return the path of this file relative to the game directory."
   (file-relative-name (buffer-file-name) (renpy-game-directory)))
 
-(defun renpy-command (output &rest args)
-  "Run Ren'Py with output to OUTPUT and arguments ARGS."
+(defun renpy-command (buffer &rest args)
+  "Run a Ren'Py command.
+Output will be sent to a `special-mode' buffer called BUFFER and
+called with the arguments supplied in ARGS."
+  (when (and buffer (get-buffer buffer))
+    (kill-buffer buffer))
   (let ((default-directory (renpy-game-directory))
 	(process-environment process-environment))
     (setenv "RENPY_EDIT_PY" renpy-edit-py-file-name)
-    (apply 'call-process
-	   (append `(,renpy-command
-		     nil
-		     ,output
-		     nil
-		     ".")
-		   args))))
+    (apply 'start-process
+           (append `("renpy"
+                     ,buffer
+                     ,renpy-command
+                     ".")
+                   args)))
+  (when buffer
+    (switch-to-buffer-other-window buffer)
+    (special-mode)))
 
 (defun renpy-lint ()
   "Run the Ren'Py linter."
   (interactive)
-  (with-output-to-temp-buffer "*renpy lint*"
-    (renpy-command standard-output "lint")))
+    (renpy-command "*renpy lint*" "lint"))
 
 (defun renpy-run ()
   "Run the Ren'Py game."
