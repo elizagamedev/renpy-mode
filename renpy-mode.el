@@ -146,7 +146,9 @@ level."
                      (progn
                        (setq indent-col (+ (current-indentation) python-indent-offset))
                        (setq abort t)))
-                    (t (setq abort t)))))
+                    (t (setq abort t)))
+              (when (equal (point-min) (point))
+                (setq abort t))))
           (indent-line-to indent-col))))))
 
 (defun renpy-newline ()
