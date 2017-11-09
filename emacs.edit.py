@@ -1,5 +1,6 @@
 import renpy
 import subprocess
+import os.path
 
 
 class Editor(renpy.editor.Editor):
@@ -8,10 +9,25 @@ class Editor(renpy.editor.Editor):
         self.arguments = ["emacsclient", "-n"]
 
     def open(self, filename, line=None, **kwargs):
-        if line:
-            self.arguments.append("+%d" % line)
+        # Handle special cases for generated files like lint.txt, errors.txt,
+        # and traceback.txt; specifically treat them as read-only special-mode
+        # buffers
+        basename = os.path.basename(filename)
         filename = renpy.exports.fsencode(filename)
-        self.arguments.append(filename)
+        if basename in {"lint.txt", "errors.txt", "traceback.txt"}:
+            # special-mode buffer
+            buffer_name = "*renpy {}*".format(os.path.splitext(basename)[0])
+            self.arguments.extend(
+                ('-e',
+                 '(get-buffer-create "{}")'.format(buffer_name),
+                 '(switch-to-buffer-other-window "{}")'.format(buffer_name),
+                 '(insert-file-contents "{}" nil nil nil t)'.format(filename),
+                 '(special-mode)'))
+        else:
+            # normal file
+            if line:
+                self.arguments.append("+%d" % line)
+            self.arguments.append(filename)
 
     def end(self, **kwargs):
         subprocess.Popen(self.arguments)
