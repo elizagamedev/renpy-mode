@@ -205,7 +205,7 @@ The path is relative to the current buffer's file path."
 
 (defun renpy-relative-file-name ()
   "Return the path of this file relative to the game directory."
-  (file-relative-name (buffer-file-name) (renpy-game-directory)))
+  (file-relative-name (buffer-file-name) (concat (renpy-game-directory) "game/")))
 
 (defun renpy-command (buffer &rest args)
   "Run a Ren'Py command.

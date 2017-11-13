@@ -19,10 +19,11 @@ class Editor(renpy.editor.Editor):
             buffer_name = "*renpy {}*".format(os.path.splitext(basename)[0])
             self.arguments.extend(
                 ('-e',
-                 '(get-buffer-create "{}")'.format(buffer_name),
-                 '(switch-to-buffer-other-window "{}")'.format(buffer_name),
-                 '(insert-file-contents "{}" nil nil nil t)'.format(filename),
-                 '(special-mode)'))
+                 '(let ((inhibit-read-only t))' +
+                 '(get-buffer-create "{}")'.format(buffer_name) +
+                 '(switch-to-buffer-other-window "{}")'.format(buffer_name) +
+                 '(insert-file-contents "{}" nil nil nil t)'.format(filename) +
+                 '(special-mode))'))
         else:
             # normal file
             if line:
