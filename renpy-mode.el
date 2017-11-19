@@ -172,6 +172,81 @@ indentation levels from right to left."
         (eq last-command this-command))))
 
 
+;;; Ren'Py navigation
+
+(defun renpy-forward-sentence (&optional arg)
+  "Move forward a sentence or Python block."
+  (interactive "^p")
+  (or arg (setq arg 1))
+  (if (python-syntax-comment-or-string-p)
+      (while (< arg 0)
+        ;; Make sure that we don't leave the bounds of quotes or comments.
+        (when (save-excursion
+                (skip-chars-backward "#\" \t\n")
+                (python-syntax-comment-or-string-p))
+          (backward-sentence)
+          (skip-chars-forward "# \t\n"))
+        (setq arg (1+ arg)))
+    (python-nav-forward-block arg))
+  (if (> arg 0)
+      (if (python-syntax-comment-or-string-p)
+          (progn
+            (forward-sentence arg)
+            (skip-chars-backward "\" \t\n"))
+        (python-nav-forward-block arg))))
+
+(defun renpy-backward-sentence (&optional arg)
+  "Move backward a sentence or Python block."
+  (interactive "^p")
+  (or arg (setq arg 1))
+  (renpy-forward-sentence (- arg)))
+
+(defun renpy-forward-string (&optional arg)
+  "Move to the beginning of the next string."
+  (interactive "^p")
+  (or arg (setq arg 1))
+  (while (< arg 0)
+    (let ((newpoint
+           (save-excursion
+             (while (and (> (point) (point-min))
+                         (python-syntax-comment-or-string-p))
+               (forward-char -1))
+             (while (and (> (point) (point-min))
+                         (not (python-syntax-comment-or-string-p)))
+               (forward-char -1))
+             (while (and (> (point) (point-min))
+                         (python-syntax-comment-or-string-p))
+               (forward-char -1))
+             (forward-char 1)
+             (if (python-syntax-comment-or-string-p)
+                 (point)
+               nil))))
+      (if newpoint
+          (goto-char newpoint)))
+    (setq arg (1+ arg)))
+  (while (> arg 0)
+    (let ((newpoint
+           (save-excursion
+             (while (and (not (eobp))
+                         (python-syntax-comment-or-string-p))
+               (forward-char 1))
+             (while (and (not (eobp))
+                         (not (python-syntax-comment-or-string-p)))
+               (forward-char 1))
+             (if (python-syntax-comment-or-string-p)
+                 (point)
+               nil))))
+      (if newpoint
+          (goto-char newpoint)))
+    (setq arg (1- arg))))
+
+(defun renpy-backward-string (&optional arg)
+  "Move to the beginning of the previous string."
+  (interactive "^p")
+  (or arg (setq arg 1))
+  (renpy-forward-string (- arg)))
+
+
 ;;; Imenu
 
 (defvar renpy-generic-imenu
@@ -253,6 +328,10 @@ called with the arguments supplied in ARGS."
     (define-key map (kbd "C-c C-l") 'renpy-lint)
     (define-key map (kbd "C-c C-c") 'renpy-run)
     (define-key map (kbd "C-c C-w") 'renpy-warp)
+    (define-key map (kbd "M-a") 'renpy-backward-sentence)
+    (define-key map (kbd "M-e") 'renpy-forward-sentence)
+    (define-key map (kbd "M-p") 'renpy-backward-string)
+    (define-key map (kbd "M-n") 'renpy-forward-string)
     map))
 
 
@@ -265,7 +344,9 @@ called with the arguments supplied in ARGS."
   (setq indent-line-function 'renpy-indent-line-function)
 
   (setq imenu-create-index-function 'imenu-default-create-index-function)
-  (setq imenu-generic-expression renpy-generic-imenu))
+  (setq imenu-generic-expression renpy-generic-imenu)
+
+  (setq-local sentence-end "\\([.?!][])}]*\\($\\|\t\\|  \\)\n*\\|\"\\)"))
 
 (add-to-list 'auto-mode-alist '("\\.rpym?\\'" . renpy-mode))
 
