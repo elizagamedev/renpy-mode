@@ -6,7 +6,10 @@ import os.path
 class Editor(renpy.editor.Editor):
 
     def begin(self, new_window=False, **kwargs):
-        self.arguments = ["emacsclient", "-n"]
+        if renpy.windows:
+            self.arguments = ["emacsclientw", "-n"]
+        else:
+            self.arguments = ["emacsclient", "-n"]
 
     def open(self, filename, line=None, **kwargs):
         # Handle special cases for generated files like lint.txt, errors.txt,
@@ -17,6 +20,7 @@ class Editor(renpy.editor.Editor):
         if basename in {"lint.txt", "errors.txt", "traceback.txt"}:
             # special-mode buffer
             buffer_name = "*renpy {}*".format(os.path.splitext(basename)[0])
+            filename = filename.replace(os.sep, '/')
             self.arguments.extend(
                 ('-e',
                  '(let ((inhibit-read-only t))' +
